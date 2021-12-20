@@ -213,5 +213,24 @@ write_csv(gages, "data/gages.csv")
 write_csv(sd, "data/sd.csv")
 write_csv(ts, "data/ts.csv")
 
-
-
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#4.0  Plots --------------------------------------------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ts %>% 
+  ggplot(aes(x=Q_cfs, y=NO3_ppm)) +
+    geom_point(
+      pch=19, 
+      col="grey30", 
+      alph=70) + 
+  scale_y_log10() +
+  #Add predefined black/white theme
+  theme_bw() +
+  #Change font size of axes
+  theme(
+    axis.title = element_text(size = 14), 
+    axis.text  = element_text(size = 10)
+  ) + 
+  #Add labels
+  xlab("Nitrate-N [ppm]") + 
+  ylab("Flow [cfs]") 
+    
