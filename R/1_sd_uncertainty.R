@@ -137,14 +137,13 @@ cumsum<-
 #left join to sim
 sim<-left_join(sim, cumsum)
 
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #5.0 Plots----------------------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Create a multi-panel plot
 # A) Stage Discharge Curve
 # B) Residual Plot
-# C) Resuling Error Distribution
+# C) Resulting Error Distribution
 # D) 2011 Hydrograph
 # E) Event scale load estimates
 

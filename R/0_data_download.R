@@ -90,7 +90,7 @@ gages<-gages %>% bind_rows()
 #Filter gages to atleast 5 years of NO3 data
 gages<-gages %>% 
   mutate(dT=as.numeric(paste(end_date-begin_date))) %>% 
-  filter(dT>(365*5)) %>% 
+  filter(dT>=(365*3)) %>% 
   select(-dT) %>% 
   distinct()
 
