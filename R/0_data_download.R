@@ -87,7 +87,7 @@ stopCluster(cl)
 #Clean up output
 gages<-gages %>% bind_rows()
 
-#Filter gages to atleast 5 years of NO3 data
+#Filter gages to atleast 3 years of NO3 data
 gages<-gages %>% 
   mutate(dT=as.numeric(paste(end_date-begin_date))) %>% 
   filter(dT>=(365*3)) %>% 
