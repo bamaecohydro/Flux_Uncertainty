@@ -1,7 +1,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Title: Stage-Discharge Uncertainty Analysis
-#Coder: Nate Jones
-#Date: 12/20/2021
+#Coder: Shannon Speir
+#Date: 4/10/2022
 #Purpose: Quantify uncertainty in stage-discharge uncertainty analysis
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
