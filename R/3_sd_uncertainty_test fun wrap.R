@@ -23,12 +23,19 @@ gages<-read_csv('data/gages.csv')
 sd<-read_csv("data/sd.csv")
 ts<-read_csv("data/ts.csv")
 
-#Define gage for Demo
-gage<-"07374000" 
+#Pull out 5 gages for test function
+gage<-c("07374000", "07144100", "01632900", "02319302", "03343820")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#2.0 Develop Error Distributions -----------------------------------------------
+#2.0 Create function to run for all 5 gages called in line 27-------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+gage_fun <- function(gage){
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#3.0 Develop Error Distributions -----------------------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 #tidy data
 sd_gage<-sd %>% filter(site_no==gage) 
 meas<-sd_gage %>% filter(type=='raw')
@@ -47,9 +54,9 @@ error<-meas %>%
   mutate(error = (Q_meas-Q_mod)/Q_mod)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#3.0 Cascade Error distribution through hydrograph -----------------------------
+#4.0 Cascade Error distribution through hydrograph -----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#3.1 Subset ts to gage and time period of interest------------------------------
+#4.1 Subset ts to gage and time period of interest------------------------------
 ts_gage<-ts %>% 
   filter(site_no==gage) %>% 
   mutate(day=as_date(datetime)) %>% 
@@ -70,7 +77,7 @@ ts_gage<-ts %>%
   filter(water_year==2020) %>% 
   select(-water_year) %>% select(-month)
          
-#3.2 Resample Error Distribution -----------------------------------------------
+#4.2 Resample Error Distribution -----------------------------------------------
 #Create df of resample error distribution
 error_resample<-tibble(
   n = seq(1,1000),
@@ -98,16 +105,16 @@ sim_fun<-function(sim_n){
 sim<-lapply(seq(1,1000), sim_fun) %>% bind_rows
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#4.0 Biogeochemistry -----------------------------------------------------------
+#5.0 Biogeochemistry -----------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#4.1 Estimate daily load (kg/day)  ---------------------------------------------
+#5.1 Estimate daily load (kg/day)  ---------------------------------------------
 sim<-sim %>% 
   mutate(NO3_kg = Q_cfs*NO3_ppm*86400*(0.3048^3)*1000/(10^6))
 
 ts_gage<-ts_gage %>% 
   mutate(NO3_kg = Q_cfs*NO3_ppm*86400*(0.3048^3)*1000/(10^6))
 
-#4.2 Estimate cummulative annual load ------------------------------------------
+#5.2 Estimate cumulative annual load ------------------------------------------
 #Gage data
 ts_gage<-ts_gage %>% 
   drop_na() %>% 
@@ -115,7 +122,7 @@ ts_gage<-ts_gage %>%
 
 #Create function to estimate by sim
 cumsum_fun<-function(n){
-  #Add cummulative sum col
+  #Add cumulative sum col
   sim_n<-sim %>% 
     filter(sim_n==n) %>% 
     drop_na() %>% 
@@ -137,167 +144,11 @@ cumsum<-
 #left join to sim
 sim<-left_join(sim, cumsum)
 
+}
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#5.0 Plots----------------------------------------------------------------------
+#6.0 Run Function for all 5 gages ----------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Create a multi-panel plot
-# A) Stage Discharge Curve
-# B) Residual Plot
-# C) Resulting Error Distribution
-# D) 2011 Hydrograph
-# E) Event scale load estimates
 
-#5.1 Stage-discharge -----------------------------------------------------------
-rating_curve<-ggplot()+
-  geom_line(
-    aes(x=mod$stage_ft, y=mod$Q_cfs),
-    lty=2,
-    lwd=1.1, 
-    col ="#e6550d") +
-  geom_point(
-    aes(x=meas$stage_ft, y=meas$Q_cfs), 
-    pch=19, 
-    col="#2b8cbe",
-    alpha = 0.7) +
-  #Log Axis
-  scale_y_log10()+
-  #Add predefined black/white theme
-  theme_bw() +
-  #Change font size of axes
-  theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
-  ) + 
-  #Add labels
-  xlab("Stage [ft]") + 
-  ylab("Discharge [cfs]") 
-
-#5.2 Residuals Plot ------------------------------------------------------------
-resdiual_plot<-error %>% 
-  mutate(error = error*100) %>% 
-  ggplot() +
-    #Add zero line  
-    geom_hline(
-      yintercept = 0, 
-      lwd=1.1,
-      lty=2, 
-      col="#e6550d") +
-    #Add points
-    geom_point(
-      aes(x=Q_mod, y=error), 
-      pch=19, 
-      col="#2b8cbe",
-      alpha = 0.7) +
-    #Add predefined black/white theme
-    theme_bw() +
-    #Change font size of axes
-    theme(
-      axis.title = element_text(size = 14), 
-      axis.text  = element_text(size = 10)
-    ) + 
-    #Add labels
-    xlab("Discharge [cfs]") + 
-    ylab("Residual Error [%] ") 
-    
-#5.3 Error Distribution---------------------------------------------------------
-density_plot<-error %>% 
-  mutate(error = error*100) %>% 
-  ggplot() + 
-  geom_density(
-    aes(error),
-    fill="#2b8cbe", 
-    alpha=0.7) +
-  #Add predefined black/white theme
-  theme_bw() +
-  #Change font size of axes
-  theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
-  ) + 
-  #Add labels
-  xlab("Residual Error [%]") + 
-  ylab("Density") 
-
-#5.4 Simulated hydrographs------------------------------------------------------
-hydro_plot<-ggplot() + 
-  #Add simulated flows
-  geom_line(
-    aes(x=sim$day, y=sim$Q_cfs, group=sim$sim_n), 
-    col= "#2b8cbe", 
-    lwd=0.25, 
-    alpha = 0.05
-  ) + 
-  #Add measured flow
-  geom_line(
-    aes(x=ts_gage$day, y=ts_gage$Q_cfs), 
-    col="#e6550d",
-    lwd=0.9) + 
-  #Scale y-axis
-  scale_y_log10()+
-  #Add predefined black/white theme
-  theme_bw() +
-  #Change font size of axes
-  theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
-  ) + 
-  #Add labels
-  xlab("Date") + 
-  ylab("Discharge [cfs]") 
-
-#5.5 N Export Plots ----------------------------------------------------------------
-total_plot<-ggplot() + 
-  #ADd sim export
-  geom_line(
-    aes(x=sim$day, y=sim$N_tot, group=sim$sim_n), 
-    col= "#2b8cbe", 
-    lwd=0.25, 
-    alpha = 0.05
-  ) +
-  #Add gage export
-  geom_line(
-    aes(x=ts_gage$day, y=ts_gage$N_tot), 
-    col="#e6550d",
-    lwd=0.9) + 
-  #Add predefined black/white theme
-  theme_bw() +
-  #Change font size of axes
-  theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
-  ) + 
-  #Add labels
-  xlab("Date") + 
-  ylab(expression("Total N Export [kg x 10 "^6*"]")) 
-
-#5.6 Annual N export -----------------------------------------------------------
-sum_plot<-sim %>% 
-  group_by(sim_n) %>% 
-  summarise(N_tot = sum(NO3_kg, na.rm = T)/10^6) %>% 
-  ggplot()+
-  #ADd dist data
-  geom_density(
-    aes(N_tot),
-    fill="#2b8cbe", 
-    alpha=0.7) +
-  #Add gage data
-  geom_vline(
-    xintercept = sum(ts_gage$NO3_kg/10^6, na.rm=T),
-    col="#e6550d", 
-    lty=2, 
-    lwd=1.1)+
-  #Add predefined black/white theme
-  theme_bw() +
-  #Change font size of axes
-  theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
-  ) + 
-  #Add labels
-  xlab(expression("Total N Export [kg x 10"^6*"]")) +
-  ylab("Density") 
-
-#5.6 Combine and export plots---------------------------------------------------
-#Create plot with patchwork
-(rating_curve + resdiual_plot) /(density_plot+hydro_plot)/(total_plot+sum_plot)
-ggsave("docs//baton_rouge.jpg", height = 10, width = 7.5, units = "in", dpi=300)
+gage_est <- lapply(X=gage, FUN=gage_fun) %>% 
+  bind_rows() 
