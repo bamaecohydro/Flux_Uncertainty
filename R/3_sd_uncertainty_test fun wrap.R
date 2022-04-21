@@ -144,6 +144,9 @@ cumsum<-
 #left join to sim
 sim<-left_join(sim, cumsum)
 
+#Add gage info
+sim <- sim %>% mutate(gage = gage)
+
 }
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
