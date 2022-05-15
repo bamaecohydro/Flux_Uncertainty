@@ -170,7 +170,7 @@ sim_fun<-function(n){
     summarise(NO3_kg_sim = sum(NO3_kg, na.rm = T)) %>% 
     left_join(.,event_meas) %>% 
     mutate(
-      percent_diff = (NO3_kg_sim - NO3_kg_meas)/NO3_kg_sim*100,
+      percent_diff = (NO3_kg_sim - NO3_kg_meas)/NO3_kg_meas*100,
       percent_total_load = (NO3_kg_sim - NO3_kg_meas)/total_load*100) %>% 
     mutate(
       ag_level = "event"
@@ -186,7 +186,7 @@ sim_fun<-function(n){
     group_by(sim_n, water_year) %>% 
     summarise(NO3_kg_sim = sum(NO3_kg, na.rm = T)) %>% 
     left_join(.,annual_meas) %>% 
-    mutate(percent_diff = (NO3_kg_sim - NO3_kg_meas)/NO3_kg_sim*100) %>% 
+    mutate(percent_diff = (NO3_kg_sim - NO3_kg_meas)/NO3_kg_meas*100) %>% 
     mutate(
       percent_total_load = NA, 
       ag_level = "annual"
