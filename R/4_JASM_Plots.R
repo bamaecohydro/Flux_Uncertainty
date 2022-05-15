@@ -193,6 +193,7 @@ ggplot()+
           alpha = 0.70, 
           size = gages$IQR/10+1) +
   theme_bw()
+ggsave("docs/gage_iqr.png", width=7, height = 5, units = "in", dpi=300)
 
 #Plot PDF
 iqr %>% 
@@ -228,7 +229,7 @@ df %>%
   ggplot(aes(x = percent_diff)) +
   geom_histogram(
     aes(y = ..density..), 
-    binwidth = 2, 
+    binwidth = 10, 
     bg="grey70") +
   geom_density(
     adjust=2,
@@ -242,9 +243,37 @@ df %>%
     axis.text  = element_text(size = 10)
   ) + 
   #Add labels
-  xlab('% Difference')+
+  xlab('% Difference [Annual]')+
   ylab("Frequency") 
   #Add anotation
 ggsave("docs/annual_dist.jpg", width=4, height = 3, units = "in", dpi=300)
 
+#Distribution of event %Diff---------------------------------------------------
+df %>% 
+  filter(ag_level == 'event') %>% 
+  filter(percent_diff>-200) %>% 
+  filter(percent_diff<200) %>% 
+  filter(percent_diff!=-100) %>% 
+  select(percent_diff) %>% 
+  ggplot(aes(x = percent_diff)) +
+  geom_histogram(
+    aes(y = ..density..), 
+    binwidth = 10, 
+    bg="grey70") +
+  geom_density(
+    adjust=2,
+    color="#E57200", 
+    lwd=1.2)+
+  #Theme Black White
+  theme_bw() +
+  #Change font size of axes
+  theme(
+    axis.title = element_text(size = 14), 
+    axis.text  = element_text(size = 10)
+  ) + 
+  #Add labels
+  xlab('% of Annual Load')+
+  ylab("Frequency") 
+#Add anotation
+ggsave("docs/annual_dist.jpg", width=4, height = 3, units = "in", dpi=300)
 
