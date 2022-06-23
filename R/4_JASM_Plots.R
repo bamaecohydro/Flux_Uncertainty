@@ -258,7 +258,7 @@ df %>%
   ggplot(aes(x = percent_diff)) +
   geom_histogram(
     aes(y = ..density..), 
-    binwidth = 10, 
+    binwidth = 2.5, 
     bg="grey70") +
   geom_density(
     adjust=2,
@@ -275,5 +275,5 @@ df %>%
   xlab('% of Annual Load')+
   ylab("Frequency") 
 #Add anotation
-ggsave("docs/annual_dist.jpg", width=4, height = 3, units = "in", dpi=300)
+ggsave("docs/event_dist.jpg", width=4, height = 3, units = "in", dpi=300)
 
