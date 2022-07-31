@@ -20,7 +20,7 @@ library(sf)
 #Load data
 states<-st_read("data/tl_2012_us_state/tl_2012_us_state.shp")
 gages<-read_csv('data/gages.csv')
-df<-read_csv("data/results.csv")
+df<-read_csv("data/results_hydro.csv")
 
 #Edit States shape
 states <- states %>% 

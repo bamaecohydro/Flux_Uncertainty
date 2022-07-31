@@ -29,6 +29,8 @@ ts <- read_csv("data/ts.csv")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 fun<-function(n){
   
+  print(n)
+  
   #define gage of interest ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   gage<-gages$site_no[n]  
 
@@ -142,16 +144,20 @@ fun<-function(n){
   
   # Export ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   sim <- annual_sim %>% mutate(gage=gages$site_no[n])
-  
   sim 
 }
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #3.0 Execute sim function ------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#Remove problematic gage
+gages<-gages %>% filter(site_no != gages$site_no[44])
+
 #Execute Function
 df <- lapply(X = seq(1,nrow(gages)), fun) %>% bind_rows()
 
 #Export
 write_csv(df, "data//results_biogeo.csv")
+
+
 
