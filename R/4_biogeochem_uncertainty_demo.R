@@ -1,8 +1,8 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Title: Biogeochemistry Uncertainty Analysis
+#Title: Biogeochemistry Uncertainty Analysis Demo
 #Coder: Nate Jones
 #Date: 7/13/2021
-#Purpose: Quantify uncertainty in biogeochemistry measurements
+#Purpose: Demo uncertainty in biogeochemistry measurements
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
