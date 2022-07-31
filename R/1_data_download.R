@@ -206,12 +206,57 @@ stopCluster(cl)
 #Bind rows and tidy
 ts<-ts %>% bind_rows()
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#3.0  Export data --------------------------------------------------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#2.4  Export data --------------------------------------------------------------
 write_csv(gages, "data/gages.csv")
 write_csv(sd, "data/sd.csv")
 write_csv(ts, "data/ts.csv")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#3.0 Download WQ Measurement Data-----------------------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#3.1 Create function to water quality data 
+wq_data<-function(n){
+  
+  #define gage of interest
+  gage<-gages$site_no[n]
+  
+  #Download discrete sample data
+  df <- readWQPqw(
+    paste0("USGS-", gage), 
+    parameterCd = c('00618'))
+  
+  #Tidy data
+  df <- df %>% 
+    #Create tibble
+    as_tibble() %>% 
+    #select cols of interest
+    select(
+      date      = ActivityStartDateTime,
+      NO3_N_ppm = ResultMeasureValue) 
+  
+  #Aggregate daily data
+  df <- df %>% 
+    #aggreagate to day
+    mutate(date = as_date(date)) %>% 
+    group_by(date) %>% 
+    summarise(
+      NO3_sample = median(NO3_N_ppm, na.rm=T)) %>% 
+    ungroup() %>% 
+    mutate(gage = gage)
+  
+  #export dataframe
+  df
+}
+
+#3.2 Apply function
+wq<-lapply(
+  X=seq(1, nrow(gages)), 
+  FUN = wq_data) %>% 
+  bind_rows()
+
+#3.3 write csv file to use later
+write_csv(wq, "data/wq_data.csv")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #4.0  Plots --------------------------------------------------------------------
