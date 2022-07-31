@@ -150,7 +150,7 @@ fun<-function(n){
 #3.0 Execute sim function ------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Execute Function
-df <- lapply(X = seq(1,nrow(gages)), sim_fun) %>% bind_rows()
+df <- lapply(X = seq(1,nrow(gages)), fun) %>% bind_rows()
 
 #Export
 write_csv(df, "data//results_biogeo.csv")
