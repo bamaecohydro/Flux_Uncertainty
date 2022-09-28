@@ -29,18 +29,19 @@ ts <- read_csv("data/ts.csv")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 fun<-function(n){
   
+  #For testing 
   print(n)
   
-  #define gage of interest ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  gage<-gages$site_no[n]  
+  #define gage of interest ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  gage_n<-gages$site_no[n]  
 
   #Quantify error between wwq measurements and sonde data~~~~~~~~~~~~~~~~~~~~~~~
   #subset wq data to from gage of interest
-  wq_gage <- wq %>% filter(gage==gage)
+  wq_gage <- wq %>% filter(gage==gage_n)
   
   #Join  too larger ts
   error <- ts %>% 
-    filter(site_no == gage) %>% 
+    filter(site_no == gage_n) %>% 
     #aggregate to day
     mutate(date = as_date(datetime)) %>% 
     group_by(date) %>% 
@@ -58,7 +59,7 @@ fun<-function(n){
   
   # tidy data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   #Subset ts tibble to gage of interest
-  ts_gage <- ts %>% filter(site_no==gage)  
+  ts_gage <- ts %>% filter(site_no==gage_n)  
   
   #Aggregate data to mean daily
   ts_gage <- ts_gage %>% 
@@ -138,7 +139,6 @@ fun<-function(n){
     left_join(.,annual_meas) %>% 
     mutate(percent_diff = (NO3_kg_sim - NO3_kg_meas)/NO3_kg_meas*100) %>% 
     mutate(
-      percent_total_load = NA, 
       ag_level = "annual"
     )
   
@@ -150,11 +150,30 @@ fun<-function(n){
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #3.0 Execute sim function ------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Remove problematic gage
-gages<-gages %>% filter(site_no != gages$site_no[44])
+#create error wrapper function
+error_fun<-function(n){
+  tryCatch(
+    expr = fun(n), 
+    error = function(e)
+      sim<-tibble(
+        sim_n = NA, 
+        water_year = NA, 
+        NO3_kg_sim = NA, 
+        NO3_kg_meas = NA, 
+        percent_diff = NA,
+        ag_level = 'annual',
+        gage = gages$site_no[n])
+      )
+}  
 
 #Execute Function
-df <- lapply(X = seq(1,nrow(gages)), fun) %>% bind_rows()
+df <- lapply(X = seq(1,nrow(gages)), error_fun) %>% bind_rows()
+
+#How many gages did we loose:
+df %>% filter(is.na(sim_n))
+
+#Drop NAs
+df <- df %>% drop_na()
 
 #Export
 write_csv(df, "data//results_biogeo.csv")
