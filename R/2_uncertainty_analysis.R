@@ -22,8 +22,8 @@ library(patchwork)
 
 #Load data
 gages<-read_csv('data/gages.csv')
-sd<-read_csv("data/sd.csv")
-ts<-read_csv("data/ts.csv")
+sd<-read_csv("temp/sd.csv")
+ts<-read_csv("temp/ts.csv")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #2.0 Create sim function -------------------------------------------------------
@@ -205,6 +205,20 @@ sim_fun<-function(n){
 df <- lapply(X = seq(1,nrow(gages)), sim_fun) %>% bind_rows()
 
 #Export
-write_csv(df, "data//results_hydro.csv")
+write_csv(df, "temp//results_hydro.csv")
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#4.0 Subset data for plots -----------------------------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#Summairse range of uncertainty by gage
+output<-df %>% 
+  filter(ag_level == 'annual') %>% 
+  group_by(gage) %>% 
+  summarise(Q_uncertainty = quantile(percent_diff, 0.75) - quantile(percent_diff, 0.25)) %>% 
+  ungroup() %>% 
+  rename(site_no = gage) %>% 
+  filter(Q_uncertainty<200) 
+
+#Export
+write_csv(output, "data//uncertainty_results.csv")
 
