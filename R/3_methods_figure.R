@@ -21,9 +21,9 @@ library(tigris)
 library(sf)
 
 #Load data
-gages<-read_csv('temp/gages.csv')
-sd<-read_csv("temp/sd.csv")
-ts<-read_csv("temp/ts.csv")
+gages   <- read_csv('data/gages.csv')
+sd_gage <- read_csv("data/sd_gage.csv")
+ts_gage <- read_csv("temp/ts_gage.csv")
 
 #Define gage for Demo
 gage<-"07374000" 
@@ -32,15 +32,14 @@ gage<-"07374000"
 #2.0 Develop Error Distributions -----------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #tidy data
-sd_gage<-sd %>% filter(site_no==gage) 
-meas<-sd_gage %>% filter(type=='raw')
-mod<-sd_gage %>% filter(type=='model')
+meas <- sd_gage %>% filter(type=='raw')
+mod  <- sd_gage %>% filter(type=='model')
 
 #create interpolation function
-mod_fun<-approxfun(mod$stage_ft, mod$Q_cfs)
+mod_fun <- approxfun(mod$stage_ft, mod$Q_cfs)
 
 #Estimate error between measured and modeled
-error<-meas %>% 
+error < -meas %>% 
   #Rename Q_cfs
   rename(Q_meas = Q_cfs) %>% 
   #Estimate modeled value
@@ -52,8 +51,7 @@ error<-meas %>%
 #3.0 Cascade Error distribution through hydrograph -----------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #3.1 Subset ts to gage and time period of interest------------------------------
-ts_gage<-ts %>% 
-  filter(site_no==gage) %>% 
+ts_gage <- ts_gage %>% 
   mutate(day=as_date(datetime)) %>% 
   group_by(day) %>% 
   summarise(
@@ -74,12 +72,12 @@ ts_gage<-ts %>%
          
 #3.2 Resample Error Distribution -----------------------------------------------
 #Create df of resample error distribution
-error_resample<-tibble(
+error_resample <- tibble(
   n = seq(1,1000),
   error=sample(error$error, size = 1000, replace = T))
 
 #Create function to apply error to hydrograph
-sim_fun<-function(sim_n){
+sim_fun <- function(sim_n){
 
   #Define error term
   error_sim<-error_resample %>% 
@@ -97,26 +95,26 @@ sim_fun<-function(sim_n){
 }
 
 #Apply function
-sim<-lapply(seq(1,1000), sim_fun) %>% bind_rows
+sim <- lapply(seq(1,1000), sim_fun) %>% bind_rows
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #4.0 Biogeochemistry -----------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #4.1 Estimate daily load (kg/day)  ---------------------------------------------
-sim<-sim %>% 
+sim <- sim %>% 
   mutate(NO3_kg = Q_cfs*NO3_ppm*86400*(0.3048^3)*1000/(10^6))
 
-ts_gage<-ts_gage %>% 
+ts_gage <- ts_gage %>% 
   mutate(NO3_kg = Q_cfs*NO3_ppm*86400*(0.3048^3)*1000/(10^6))
 
 #4.2 Estimate cummulative annual load ------------------------------------------
 #Gage data
-ts_gage<-ts_gage %>% 
+ts_gage <- ts_gage %>% 
   drop_na() %>% 
   mutate(N_tot = cumsum(NO3_kg)/10^6)
 
 #Create function to estimate by sim
-cumsum_fun<-function(n){
+cumsum_fun <- function(n){
   #Add cummulative sum col
   sim_n<-sim %>% 
     filter(sim_n==n) %>% 
@@ -130,14 +128,14 @@ cumsum_fun<-function(n){
 }
 
 #Apply function
-cumsum<-
+cumsum <-
   lapply(
     X=seq(1,1000), 
     FUN=cumsum_fun) %>% 
   bind_rows()
 
 #left join to sim
-sim<-left_join(sim, cumsum)
+sim  <-left_join(sim, cumsum)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #5.0 Plots----------------------------------------------------------------------
@@ -164,7 +162,7 @@ states <- states() %>%
   st_transform(., crs="+proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80") 
 
 #Convert gages into sf 
-gages <-   gages %>% 
+gages <- gages %>% 
   st_as_sf(
     coords = c("dec_long_va", "dec_lat_va"), 
     crs = '+proj=longlat +datum=WGS84 +no_defs') %>% 
@@ -185,7 +183,7 @@ ggsave("docs/methods_gage_location.png", width=7, height = 5, units = "in", dpi=
 
 
 #5.2 Stage-discharge -----------------------------------------------------------
-rating_curve<-ggplot()+
+rating_curve <- ggplot()+
   geom_line(
     aes(x=mod$stage_ft, y=mod$Q_cfs),
     lty=2,
@@ -213,7 +211,7 @@ rating_curve<-ggplot()+
 ggsave("docs//methods_rating_curve.png", height = 3.33, width = 3.75, units = "in", dpi=300)
 
 #5.3 Residuals Plot ------------------------------------------------------------
-resdiual_plot<-error %>% 
+resdiual_plot <- error %>% 
   mutate(error = error*100) %>% 
   ggplot() +
     #Add zero line  
@@ -244,7 +242,7 @@ ggsave("docs//methods_residual_plot.png", height = 3.33, width = 3.75, units = "
 
     
 #5.4 Error Distribution---------------------------------------------------------
-density_plot<-error %>% 
+density_plot <- error %>% 
   mutate(error = error*100) %>% 
   ggplot() + 
   geom_density(
@@ -267,7 +265,7 @@ ggsave("docs//methods_density_plot.png", height = 3.33, width = 3.75, units = "i
 
 
 #5.5 Simulated hydrographs------------------------------------------------------
-hydro_plot<-ggplot() + 
+hydro_plot <- ggplot() + 
   #Add simulated flows
   geom_line(
     aes(x=sim$day, y=sim$Q_cfs, group=sim$sim_n), 
@@ -298,7 +296,7 @@ ggsave("docs//methods_hydro_plot.png", height = 3.33, width = 3.75, units = "in"
 
 
 #5.6 N Export Plots ----------------------------------------------------------------
-total_plot<-ggplot() + 
+total_plot <- ggplot() + 
   #ADd sim export
   geom_line(
     aes(x=sim$day, y=sim$N_tot, group=sim$sim_n), 
@@ -326,7 +324,7 @@ total_plot<-ggplot() +
 ggsave("docs//methods_total_n_export.png", height = 3.33, width = 3.75, units = "in", dpi=300)
 
 #5.7 Annual N export -----------------------------------------------------------
-sum_plot<-sim %>% 
+sum_plot <- sim %>% 
   group_by(sim_n) %>% 
   summarise(N_tot = sum(NO3_kg, na.rm = T)/10^6) %>% 
   ggplot()+

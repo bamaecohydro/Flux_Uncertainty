@@ -260,3 +260,18 @@ wq<-lapply(
 #3.3 write csv file to use later
 write_csv(wq, "temp/wq_data.csv")
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#4.0 Export subset of data for methods figure-----------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#Define gage for Demo
+gage<-"07374000" 
+
+#Subset sd curve
+sd_gage<-sd %>% filter(site_no==gage) 
+
+#Subseet ts
+ts_gage<-ts %>% filter(site_no==gage)
+
+#Export to data folder
+write_csv(sd_gage, "data/sd_gage.csv")
+write_csv(ts_gage, 'data/ts_gage.csv')
