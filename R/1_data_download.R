@@ -22,10 +22,10 @@ library('lubridate')
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #2.1 Identify gages with in-situ NO3 data --------------------------------------
 #Define list of states to search gages
-states<-dataRetrieval::stateCd$STATE_NAME
+states <- dataRetrieval::stateCd$STATE_NAME
 
 #Create download function
-gage_fun<-function(n){
+gage_fun <- function(n){
   
   #load required libraries 
   library(tidyverse)
@@ -35,7 +35,7 @@ gage_fun<-function(n){
   state<-states[n]
   
   #Identify gages within state
-  sites<-
+  sites <-
     whatNWISsites(
       stateCd=state,
       parameterCd=c("99133"),
@@ -49,7 +49,7 @@ gage_fun<-function(n){
     )
 
   #Define period of record
-  period<-lapply(
+  period <- lapply(
     X = sites$site_no,
     FUN = function(x){
       whatNWISdata(
@@ -60,7 +60,7 @@ gage_fun<-function(n){
   ) 
 
   #Bind list and tidy 
-  period<-period %>% 
+  period <- period %>% 
     bind_rows() %>% 
     select(
       site_no,
@@ -69,27 +69,27 @@ gage_fun<-function(n){
     )
 
   #Left join to sites tibble
-  sites<-left_join(sites, period)
+  sites <- left_join(sites, period)
   
   #Export 
   sites
 }
 
 #Create error function
-error_fun<-function(m){tryCatch(gage_fun(m), error=function(e) NULL)}
+error_fun <- function(m){tryCatch(gage_fun(m), error=function(e) NULL)}
 
 #apply function 
-n_cores<-parallel::detectCores()-1
-cl<-makeCluster(n_cores)
+n_cores <- parallel::detectCores()-1
+cl <- makeCluster(n_cores)
 clusterExport(cl, c("gage_fun","states"))
-gages<-parLapply(cl, seq(1, length(states)), error_fun)
+gages <- parLapply(cl, seq(1, length(states)), error_fun)
 stopCluster(cl)
 
 #Clean up output
-gages<-gages %>% bind_rows()
+gages <- gages %>% bind_rows()
 
 #Filter gages to atleast 3 years of NO3 data
-gages<-gages %>% 
+gages <- gages %>% 
   mutate(dT=as.numeric(paste(end_date-begin_date))) %>% 
   filter(dT>=(365*3)) %>% 
   select(-dT) %>% 
@@ -97,18 +97,18 @@ gages<-gages %>%
 
 #2.2 Stage-discharge data ------------------------------------------------------
 #Create download function
-sd_fun<-function(n){
+sd_fun <- function(n){
   
   #call required libraries
   library(tidyverse)
   
   #Isolate gage of interest
-  gage<-gages$site_no[n]
+  gage <- gages$site_no[n]
   
   #Download stage discharge measurements 
-  url<-paste0("http://waterdata.usgs.gov/nwis/measurements?site_no=",gage,"&agency_cd=USGS&format=rdb") #URL address
-  sd_raw<-read.table(url, sep = "\t", skip=14, header = TRUE)  #download
-  sd_raw<-sd_raw[-1,] #delete first line (non data)
+  url <- paste0("http://waterdata.usgs.gov/nwis/measurements?site_no=",gage,"&agency_cd=USGS&format=rdb") #URL address
+  sd_raw <- read.table(url, sep = "\t", skip=14, header = TRUE)  #download
+  sd_raw <- sd_raw[-1,] #delete first line (non data)
   
   #Tidy raw data
   sd_raw <- 
@@ -121,10 +121,10 @@ sd_fun<-function(n){
     )
   
   #Downloadd stage discharge modeled data
-  url<-paste0("http://waterdata.usgs.gov/nwisweb/get_ratings?site_no=",gage,"&file_type=exsa")
-  sd_model<-readLines(url)
-  sd_model<-read.table(url, sep = "\t", skip=length(subset(sd_model, substr(sd_model,1,1)=="#")), header = TRUE)
-  sd_model<-sd_model[-1,]
+  url <- paste0("http://waterdata.usgs.gov/nwisweb/get_ratings?site_no=",gage,"&file_type=exsa")
+  sd_model <- readLines(url)
+  sd_model <- read.table(url, sep = "\t", skip=length(subset(sd_model, substr(sd_model,1,1)=="#")), header = TRUE)
+  sd_model <- sd_model[-1,]
   
   #Tidy modeled data
   sd_model <- 
@@ -137,29 +137,29 @@ sd_fun<-function(n){
     )
   
   #bind rows
-  sd<-bind_rows(sd_raw, sd_model)
+  sd <- bind_rows(sd_raw, sd_model)
   
   #export sd data
   sd
 }
 
 #Create error function
-error_fun<-function(m){tryCatch(sd_fun(m), error=function(e) NULL)}
+error_fun <- function(m){tryCatch(sd_fun(m), error=function(e) NULL)}
 
 #apply function 
-n_cores<-parallel::detectCores()-1
-cl<-makeCluster(n_cores)
+n_cores <- parallel::detectCores()-1
+cl <- makeCluster(n_cores)
 clusterExport(cl, c("sd_fun","gages"))
-sd<-parLapply(cl, seq(1, nrow(gages)), error_fun)
+sd <- parLapply(cl, seq(1, nrow(gages)), error_fun)
 parallel::stopCluster(cl)
 
 #Tidy data a bit
-sd<-sd %>% 
+sd <- sd %>% 
   bind_rows(.) %>% 
   drop_na()
 
 #Remove gages without raw or modeled data
-gages<-sd %>% 
+gages <- sd %>% 
   group_by(site_no, type) %>% 
   summarise(count = n()) %>% 
   pivot_wider(names_from=type, values_from=count, values_fill = NA) %>% 
@@ -168,21 +168,21 @@ gages<-sd %>%
 
 #2.3 Gage data -----------------------------------------------------------------
 #Create download function
-ts_fun<-function(n){
+ts_fun <- function(n){
   
   #Load packages of interest
   library(tidyverse)
   library(dataRetrieval)
   
   #Download data
-  ts<-readNWISuv(
+  ts <- readNWISuv(
     siteNumbers = gages$site_no[n],
     parameterCd=c("00060","99133"),
     startDate = gages$begin_date[n],
     endDate = gages$end_date[n])
 
   #Tidy data
-  ts<-ts %>% 
+  ts <- ts %>% 
     select(
       site_no, 
       datetime = dateTime,
@@ -195,17 +195,17 @@ ts_fun<-function(n){
 }
 
 #Create error function
-error_fun<-function(m){tryCatch(ts_fun(m), error=function(e) NULL)}
+error_fun <- function(m){tryCatch(ts_fun(m), error=function(e) NULL)}
 
 #Setup parallels
-n_cores<-parallel::detectCores()-1
-cl<-makeCluster(n_cores)
+n_cores <- parallel::detectCores()-1
+cl <- makeCluster(n_cores)
 clusterExport(cl, c("ts_fun","gages"))
-ts<-parLapply(cl, seq(1, nrow(gages)),error_fun)
+ts <- parLapply(cl, seq(1, nrow(gages)),error_fun)
 stopCluster(cl)
 
 #Bind rows and tidy
-ts<-ts %>% bind_rows()
+ts <- ts %>% bind_rows()
 
 
 #2.4  Export data --------------------------------------------------------------
@@ -218,7 +218,7 @@ write_csv(ts, "temp/ts.csv")
 #3.0 Download WQ Measurement Data-----------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #3.1 Create function to water quality data 
-wq_data<-function(n){
+wq_data <- function(n){
   
   #define gage of interest
   gage<-gages$site_no[n]
@@ -252,7 +252,7 @@ wq_data<-function(n){
 }
 
 #3.2 Apply function
-wq<-lapply(
+wq <- lapply(
   X=seq(1, nrow(gages)), 
   FUN = wq_data) %>% 
   bind_rows()
@@ -264,13 +264,13 @@ write_csv(wq, "temp/wq_data.csv")
 #4.0 Export subset of data for methods figure-----------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Define gage for Demo
-gage<-"07374000" 
+gage <- "07374000" 
 
 #Subset sd curve
-sd_gage<-sd %>% filter(site_no==gage) 
+sd_gage <- sd %>% filter(site_no==gage) 
 
 #Subseet ts
-ts_gage<-ts %>% filter(site_no==gage)
+ts_gage <- ts %>% filter(site_no==gage)
 
 #Export to data folder
 write_csv(sd_gage, "data/sd_gage.csv")
