@@ -210,7 +210,7 @@ ts<-ts %>% bind_rows()
 
 #2.4  Export data --------------------------------------------------------------
 dir.create('temp')
-write_csv(gages, "temp/gages.csv")
+write_csv(gages, "data/gages.csv")
 write_csv(sd, "temp/sd.csv")
 write_csv(ts, "temp/ts.csv")
 
