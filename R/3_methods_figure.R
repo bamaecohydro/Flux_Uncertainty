@@ -19,9 +19,9 @@ library(parallel)
 library(patchwork)
 
 #Load data
-gages<-read_csv('data/gages.csv')
-sd<-read_csv("data/sd.csv")
-ts<-read_csv("data/ts.csv")
+gages<-read_csv('temp/gages.csv')
+sd<-read_csv("temp/sd.csv")
+ts<-read_csv("temp/ts.csv")
 
 #Define gage for Demo
 gage<-"07374000" 
@@ -300,4 +300,4 @@ sum_plot<-sim %>%
 #5.6 Combine and export plots---------------------------------------------------
 #Create plot with patchwork
 (rating_curve + resdiual_plot) /(density_plot+hydro_plot)/(total_plot+sum_plot)
-ggsave("docs//baton_rouge.jpg", height = 10, width = 7.5, units = "in", dpi=300)
+ggsave("docs//baton_rouge.png", height = 10, width = 7.5, units = "in", dpi=300)
