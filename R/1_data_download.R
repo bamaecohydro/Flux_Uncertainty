@@ -15,6 +15,7 @@ remove(list=ls())
 library('tidyverse')
 library('dataRetrieval')
 library('parallel')
+library('lubridate')
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #2.0 Download Data -------------------------------------------------------------
@@ -208,9 +209,10 @@ ts<-ts %>% bind_rows()
 
 
 #2.4  Export data --------------------------------------------------------------
-write_csv(gages, "data/gages.csv")
-write_csv(sd, "data/sd.csv")
-write_csv(ts, "data/ts.csv")
+dir.create('temp')
+write_csv(gages, "temp/gages.csv")
+write_csv(sd, "temp/sd.csv")
+write_csv(ts, "temp/ts.csv")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #3.0 Download WQ Measurement Data-----------------------------------------------
@@ -256,7 +258,7 @@ wq<-lapply(
   bind_rows()
 
 #3.3 write csv file to use later
-write_csv(wq, "data/wq_data.csv")
+write_csv(wq, "temp/wq_data.csv")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #4.0  Plots --------------------------------------------------------------------
