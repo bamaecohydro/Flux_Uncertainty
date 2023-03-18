@@ -1,8 +1,8 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Title: Stage-Discharge Uncertainty Analysis
+#Title: Methods Figure
 #Coder: Nate Jones
-#Date: 12/19/2021
-#Purpose: Quantify uncertainty in stage-discharge uncertainty analysis
+#Date: 3/18/2023
+#Purpose: Develop figures that demonstrate methods used in uncertainty analysis
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -17,6 +17,8 @@ library(lubridate)
 library(dataRetrieval)
 library(parallel)
 library(patchwork)
+library(tigris)
+library(sf)
 
 #Load data
 gages<-read_csv('temp/gages.csv')
@@ -141,13 +143,48 @@ sim<-left_join(sim, cumsum)
 #5.0 Plots----------------------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Create a multi-panel plot
-# A) Stage Discharge Curve
-# B) Residual Plot
-# C) Resulting Error Distribution
-# D) 2011 Hydrograph
-# E) Event scale load estimates
+# 5.1 Gage Location Figure
+# 5.2 Stage Discharge Curve
+# 5.3 Residual Plot
+# 5.4 Resulting Error Distribution
+# 5.5 2011 Hydrograph
+# 5.6 Event scale load estimates
 
-#5.1 Stage-discharge -----------------------------------------------------------
+#5.1 Gage Location -------------------------------------------------------------
+#Download state shapefiles
+states <- states() %>% 
+  filter(
+    NAME != 'Alaska', 
+    NAME != 'Hawaii', 
+    NAME != 'Guam', 
+    NAME != 'Commonwealth of the Northern Mariana Islands', 
+    NAME != 'American Samoa',
+    NAME != 'Puerto Rico',
+    NAME != 'United States Virgin Islands') %>% 
+  st_transform(., crs="+proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80") 
+
+#Convert gages into sf 
+gages <-   gages %>% 
+  st_as_sf(
+    coords = c("dec_long_va", "dec_lat_va"), 
+    crs = '+proj=longlat +datum=WGS84 +no_defs') %>% 
+  st_transform(., crs="+proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80") 
+
+
+#Plot
+ggplot()+
+  geom_sf(data = states) + 
+  geom_sf(data = gages, 
+          color = '#E57200', 
+          alpha = 0.70, 
+          pch=19, 
+          cex=4) +
+  theme_bw()
+
+ggsave("docs/methods_gage_location.png", width=7, height = 5, units = "in", dpi=300)
+
+
+#5.2 Stage-discharge -----------------------------------------------------------
 rating_curve<-ggplot()+
   geom_line(
     aes(x=mod$stage_ft, y=mod$Q_cfs),
@@ -172,7 +209,10 @@ rating_curve<-ggplot()+
   xlab("Stage [ft]") + 
   ylab("Discharge [cfs]") 
 
-#5.2 Residuals Plot ------------------------------------------------------------
+#Export
+ggsave("docs//methods_rating_curve.png", height = 3.33, width = 3.75, units = "in", dpi=300)
+
+#5.3 Residuals Plot ------------------------------------------------------------
 resdiual_plot<-error %>% 
   mutate(error = error*100) %>% 
   ggplot() +
@@ -198,8 +238,12 @@ resdiual_plot<-error %>%
     #Add labels
     xlab("Discharge [cfs]") + 
     ylab("Residual Error [%] ") 
+
+#Export
+ggsave("docs//methods_residual_plot.png", height = 3.33, width = 3.75, units = "in", dpi=300)
+
     
-#5.3 Error Distribution---------------------------------------------------------
+#5.4 Error Distribution---------------------------------------------------------
 density_plot<-error %>% 
   mutate(error = error*100) %>% 
   ggplot() + 
@@ -218,7 +262,11 @@ density_plot<-error %>%
   xlab("Residual Error [%]") + 
   ylab("Density") 
 
-#5.4 Simulated hydrographs------------------------------------------------------
+#Export
+ggsave("docs//methods_density_plot.png", height = 3.33, width = 3.75, units = "in", dpi=300)
+
+
+#5.5 Simulated hydrographs------------------------------------------------------
 hydro_plot<-ggplot() + 
   #Add simulated flows
   geom_line(
@@ -245,7 +293,11 @@ hydro_plot<-ggplot() +
   xlab("Date") + 
   ylab("Discharge [cfs]") 
 
-#5.5 N Export Plots ----------------------------------------------------------------
+#Export
+ggsave("docs//methods_hydro_plot.png", height = 3.33, width = 3.75, units = "in", dpi=300)
+
+
+#5.6 N Export Plots ----------------------------------------------------------------
 total_plot<-ggplot() + 
   #ADd sim export
   geom_line(
@@ -270,7 +322,10 @@ total_plot<-ggplot() +
   xlab("Date") + 
   ylab(expression("Total N Export [kg x 10 "^6*"]")) 
 
-#5.6 Annual N export -----------------------------------------------------------
+#Export
+ggsave("docs//methods_total_n_export.png", height = 3.33, width = 3.75, units = "in", dpi=300)
+
+#5.7 Annual N export -----------------------------------------------------------
 sum_plot<-sim %>% 
   group_by(sim_n) %>% 
   summarise(N_tot = sum(NO3_kg, na.rm = T)/10^6) %>% 
@@ -297,7 +352,10 @@ sum_plot<-sim %>%
   xlab(expression("Total N Export [kg x 10"^6*"]")) +
   ylab("Density") 
 
-#5.6 Combine and export plots---------------------------------------------------
+#Export
+ggsave("docs//methods_annual_N_export.png", height = 3.33, width = 3.75, units = "in", dpi=300)
+
+#5.8 Combine and export plots---------------------------------------------------
 #Create plot with patchwork
 (rating_curve + resdiual_plot) /(density_plot+hydro_plot)/(total_plot+sum_plot)
-ggsave("docs//baton_rouge.png", height = 10, width = 7.5, units = "in", dpi=300)
+ggsave("docs//methods.png", height = 10, width = 7.5, units = "in", dpi=300)
