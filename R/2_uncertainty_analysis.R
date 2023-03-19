@@ -30,15 +30,18 @@ ts<-read_csv("temp/ts.csv")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sim_fun<-function(n){
   
+  #Define gage for testing
+  n <- 1
+  
   #tidy data and create error distributions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   
   #tidy data
-  sd_gage<-sd %>% filter(site_no==gages$site_no[n]) 
-  meas<-sd_gage %>% filter(type=='raw')
-  mod<-sd_gage %>% filter(type=='model')
+  sd_gage <- sd %>% filter(site_no==gages$site_no[n]) 
+  meas    <- sd_gage %>% filter(type=='raw')
+  mod     <- sd_gage %>% filter(type=='model')
   
   #create interpolation function
-  mod_fun<-approxfun(mod$stage_ft, mod$Q_cfs)
+  mod_fun <- approxfun(mod$stage_ft, mod$Q_cfs)
   
   #Estimate error between measured and modeled
   error<-meas %>% 
@@ -48,7 +51,7 @@ sim_fun<-function(n){
     mutate(Q_mod = mod_fun(stage_ft)) %>% 
     #Estimate error as a proportion of modeled value
     mutate(error = (Q_meas-Q_mod)/Q_mod)
-
+  
   # Cascade Error distribution through hydrograph~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   
   #Subset ts tibble to gage of interest
@@ -69,7 +72,7 @@ sim_fun<-function(n){
       water_year = year(day),
       month = month(day)) %>% 
     mutate(
-      water_year = if_else(
+      water_year = if_else(+
         month>=10, 
         water_year + 1, 
         water_year)) %>% 
@@ -85,48 +88,14 @@ sim_fun<-function(n){
   ts_gage<-ts_gage %>% filter(water_year %in% complete_years) %>% drop_na()
   remove(complete_years)
   
-  #Identify local peaks
-  ts_gage <- ts_gage %>% 
-    #Apply rolling faverage filter to 
-    mutate(Q_smooth = rollapply(Q_cfs, 10, mean, partial = T)) %>% 
-    #identify local peaks
-    mutate(
-      Q_fwd = Q_smooth - lag(Q_smooth), 
-      Q_bck = lead(Q_smooth) - Q_smooth, 
-      peak = if_else(Q_fwd>0 & Q_bck<0, 1, 0)) %>% 
-    select(-c(Q_fwd, Q_bck)) %>% 
-    #remove peaks less than 90% quantile
-    mutate(
-      peak_filter = if_else(Q_smooth>quantile(Q_smooth, 0.90, na.rm=T), 1, 0),
-      peak = peak*peak_filter
-    ) %>%
-    select(-peak_filter) %>% 
-    #Define individual events
-    mutate(peak_event = cumsum(peak) + 1)
-  
-  #Define min between peaks
-  trough <- ts_gage %>%
-    group_by(peak_event) %>% 
-    slice(which.min(Q_smooth)) %>% 
-    mutate(trough = 1) %>% 
-    select(day, trough) %>% ungroup()
-  ts_gage <- ts_gage %>% 
-    left_join(., trough) %>% 
-    mutate(trough = if_else(is.na(trough), 0, trough)) 
-    
-  #Define individual events
-  ts_gage<-ts_gage %>% 
-    mutate(event_id = cumsum(trough) + 1) %>% 
-    select(-c(Q_smooth, peak, peak_event, trough))
-
   #Resample Error Distribution 
   #Create df of resample error distribution
   error_resample<-tibble(
     n = seq(1,1000),
-    error=sample(error$error, size = 1000, replace = T))
+    error= rnorm(1000, mean = mean(error$error, na.rm=T), sd = sd(error$error, na.rm=T)))
   
   #Create function to apply error to hydrograph
-  sim_fun<-function(sim_n){
+  sim_fun <- function(sim_n){
   
     #Define error term
     error_sim<-error_resample %>% 
@@ -146,56 +115,43 @@ sim_fun<-function(n){
   #Apply function
   sim<-lapply(seq(1,1000), sim_fun) %>% bind_rows
 
-  #Load Calculations
-  #Estimate daily load (kg/day) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ts_gage<-ts_gage %>% 
-    mutate(NO3_kg = Q_cfs*NO3_ppm*86400*(0.3048^3)*1000/(10^6))
+  #Estiamte error at annual sclae ~~~~!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  #Add gage data 
+  sim <- sim %>% 
+    left_join( 
+      ts_gage %>% 
+        select(day, Q_cfs) %>% 
+        rename(Q_meas = Q_cfs))
   
-  sim<-sim %>% 
-    mutate(NO3_kg = Q_cfs*NO3_ppm*86400*(0.3048^3)*1000/(10^6))
-
-  #Estimate event based loads 
-  #Estimate event loads
-  event_meas <- ts_gage %>% 
-    group_by(water_year) %>% 
-    mutate(total_load = sum(NO3_kg)) %>% 
-    ungroup() %>% 
-    group_by(event_id) %>% 
+  #Estimate daily loads
+  sim <- sim %>% 
+    mutate(
+      flow_ft3_sim    = Q_cfs*86400,
+      flow_ft3_meas = Q_meas*86400,
+      NO3_kg_sim    = Q_cfs*NO3_ppm*86400*(0.3048^3)*1000/(10^6),
+      NO3_kg_meas = Q_meas*NO3_ppm*86400*(0.3048^3)*1000/(10^6))
+  
+  #Aggregate annually
+  sim <- sim %>% 
+    group_by(water_year, sim_n) %>% 
     summarise(
-      NO3_kg_meas = sum(NO3_kg, na.rm = T),
-      total_load = mean(total_load, na.rm = T))
-  
-  event_sim <- sim %>% 
-    group_by(sim_n, event_id) %>% 
-    summarise(NO3_kg_sim = sum(NO3_kg, na.rm = T)) %>% 
-    left_join(.,event_meas) %>% 
+      flow_ft3_sim    = sum(flow_ft3_sim, na.rm=T),
+      flow_ft3_meas = sum(flow_ft3_meas, na.rm = T), 
+      NO3_kg_sim    = sum(NO3_kg_sim, na.rm = T),
+      NO3_kg_meas = sum(NO3_kg_meas, na.rm=T)) %>% 
     mutate(
-      percent_diff = (NO3_kg_sim - NO3_kg_meas)/NO3_kg_meas*100,
-      percent_total_load = (NO3_kg_sim - NO3_kg_meas)/total_load*100) %>% 
-    mutate(
-      ag_level = "event"
+      flow_diff_cm = ((flow_ft3_sim - flow_ft3_meas)*(30.48^3))/(gages$drain_area_va[n]*160934^2),
+      flow_diff_percent = (flow_ft3_sim - flow_ft3_meas)/flow_ft3_meas*100,
+      N_load_diff_kg = (NO3_kg_sim - NO3_kg_meas),
+      N_load_diff_percent = (NO3_kg_sim - NO3_kg_meas)/NO3_kg_meas*100
     )
-
-  #Estimate annual loads 
-  #Estiamte event-based loads
-  annual_meas <- ts_gage %>% 
-    group_by(water_year) %>% 
-    summarise(NO3_kg_meas = sum(NO3_kg, na.rm = T))
-  
-  annual_sim <- sim %>% 
-    group_by(sim_n, water_year) %>% 
-    summarise(NO3_kg_sim = sum(NO3_kg, na.rm = T)) %>% 
-    left_join(.,annual_meas) %>% 
-    mutate(percent_diff = (NO3_kg_sim - NO3_kg_meas)/NO3_kg_meas*100) %>% 
-    mutate(
-      percent_total_load = NA, 
-      ag_level = "annual"
-    )
-
-  # Export ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  sim <- bind_rows(annual_sim, event_sim) %>% mutate(gage=gages$site_no[n])
-
-  sim 
+    
+ #######----------------------
+ # Not sure where to go from here. Need to figure out h
+ # (i) fitting distribution (currently normal....maybe poison or bootstrapping)  
+ # (ii) aggregation accros years 
+ # (iii) how to report error... 
+ #######----------------------
 }
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -210,14 +166,29 @@ write_csv(df, "temp//results_hydro.csv")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #4.0 Subset data for plots -----------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Summairse range of uncertainty by gage
-output<-df %>% 
+#Read results files
+df <- read_csv("temp//results_hydro.csv")
+
+#Summarize range of uncertainty by gage
+output_hydro<-df %>% 
   filter(ag_level == 'annual') %>% 
   group_by(gage) %>% 
   summarise(Q_uncertainty = quantile(percent_diff, 0.75) - quantile(percent_diff, 0.25)) %>% 
   ungroup() %>% 
   rename(site_no = gage) %>% 
   filter(Q_uncertainty<200) 
+
+#Summarize range of load by gage
+#output_biogeochem<-
+
+df %>% 
+  filter(ag_level == 'annual') %>% 
+  group_by(gage) %>% 
+  summarise(Q_uncertainty = quantile(percent_diff, 0.75) - quantile(percent_diff, 0.25)) %>% 
+  ungroup() %>% 
+  rename(site_no = gage) %>% 
+  filter(Q_uncertainty<200) 
+
 
 #Export
 write_csv(output, "data//uncertainty_results.csv")
