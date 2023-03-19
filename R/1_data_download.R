@@ -16,6 +16,7 @@ library('tidyverse')
 library('dataRetrieval')
 library('parallel')
 library('lubridate')
+library('nhdplusTools')
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #2.0 Download Data -------------------------------------------------------------
@@ -30,7 +31,7 @@ gage_fun <- function(n){
   #load required libraries 
   library(tidyverse)
   library(dataRetrieval)
-  
+
   #Define state of interest
   state<-states[n]
   
@@ -58,7 +59,7 @@ gage_fun <- function(n){
         parameterCd=c("99133"))
     }
   ) 
-
+  
   #Bind list and tidy 
   period <- period %>% 
     bind_rows() %>% 
@@ -68,8 +69,16 @@ gage_fun <- function(n){
       end_date
     )
 
+  #Define watershed area
+  ws_area <- lapply(
+    X = sites$site_no,
+    FUN = function(x){
+      readNWISsite(siteNumber = x) %>% select(site_no,drain_area_va)
+    }
+  ) %>% bind_rows()
+  
   #Left join to sites tibble
-  sites <- left_join(sites, period)
+  sites <- left_join(sites, period) %>% left_join(., ws_area)
   
   #Export 
   sites
@@ -164,7 +173,9 @@ gages <- sd %>%
   summarise(count = n()) %>% 
   pivot_wider(names_from=type, values_from=count, values_fill = NA) %>% 
   left_join(gages, .) %>% 
-  drop_na()
+  drop_na(model, raw) %>% 
+  select(-model) %>% 
+  rename(sd_count = raw)
 
 #2.3 Gage data -----------------------------------------------------------------
 #Create download function
@@ -206,7 +217,6 @@ stopCluster(cl)
 
 #Bind rows and tidy
 ts <- ts %>% bind_rows()
-
 
 #2.4  Export data --------------------------------------------------------------
 dir.create('temp')
