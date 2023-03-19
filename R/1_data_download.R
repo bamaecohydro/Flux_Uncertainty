@@ -73,7 +73,9 @@ gage_fun <- function(n){
   ws_area <- lapply(
     X = sites$site_no,
     FUN = function(x){
-      readNWISsite(siteNumber = x) %>% select(site_no,drain_area_va)
+      readNWISsite(siteNumber = x) %>%  
+        filter(agency_cd == 'USGS') %>%  
+        select(site_no,drain_area_va)
     }
   ) %>% bind_rows()
   
