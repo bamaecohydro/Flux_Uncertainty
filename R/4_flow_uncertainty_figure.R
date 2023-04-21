@@ -81,4 +81,4 @@ pdf_plot <- gages %>%
 #Export final plot
 #Create plot with patchwork
 map_plot + pdf_plot + plot_annotation(tag_levels = c("A"), tag_suffix = ")")
-ggsave("docs//flow_uncertainty.png", height = 10, width = 7.5, units = "in", dpi=300)
+ggsave("docs//flow_uncertainty.png", height = 4, width = 7.5, units = "in", dpi=300)

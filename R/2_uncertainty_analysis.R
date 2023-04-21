@@ -28,10 +28,8 @@ ts<-read_csv("temp/ts.csv")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #2.0 Create sim function -------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#Create function
 sim_fun<-function(n){
-  
-  #Define gage for testing
-  n <- 1
   
   #tidy data and create error distributions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   
@@ -89,7 +87,7 @@ sim_fun<-function(n){
   remove(complete_years)
   
   #Resample Error Distribution 
-  #Create df of resample error distribution
+  #Create df of resampled error distribution
   error_resample<-tibble(
     n = seq(1,1000),
     error= rnorm(1000, mean = mean(error$error, na.rm=T), sd = sd(error$error, na.rm=T)))
@@ -146,12 +144,9 @@ sim_fun<-function(n){
       N_load_diff_percent = (NO3_kg_sim - NO3_kg_meas)/NO3_kg_meas*100
     )
     
- #######----------------------
- # Not sure where to go from here. Need to figure out h
- # (i) fitting distribution (currently normal....maybe poison or bootstrapping)  
- # (ii) aggregation accros years 
- # (iii) how to report error... 
- #######----------------------
+  #Export Results
+  sim$gage <- gages$site_no[n]
+  sim
 }
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -161,34 +156,23 @@ sim_fun<-function(n){
 df <- lapply(X = seq(1,nrow(gages)), sim_fun) %>% bind_rows()
 
 #Export
-write_csv(df, "temp//results_hydro.csv")
+write_csv(df, "data//sim.csv")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #4.0 Subset data for plots -----------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Read results files
-df <- read_csv("temp//results_hydro.csv")
+df <- read_csv("data//sim.csv")
 
 #Summarize range of uncertainty by gage
-output_hydro<-df %>% 
-  filter(ag_level == 'annual') %>% 
+output<-df %>% 
   group_by(gage) %>% 
-  summarise(Q_uncertainty = quantile(percent_diff, 0.75) - quantile(percent_diff, 0.25)) %>% 
+  summarise(
+    Q_uncertainty = mean(abs(flow_diff_percent), na.rm=T),
+    N_load_diff_kg = mean(abs(flow_diff_percent), na.rm=T)) %>% 
   ungroup() %>% 
   rename(site_no = gage) %>% 
   filter(Q_uncertainty<200) 
-
-#Summarize range of load by gage
-#output_biogeochem<-
-
-df %>% 
-  filter(ag_level == 'annual') %>% 
-  group_by(gage) %>% 
-  summarise(Q_uncertainty = quantile(percent_diff, 0.75) - quantile(percent_diff, 0.25)) %>% 
-  ungroup() %>% 
-  rename(site_no = gage) %>% 
-  filter(Q_uncertainty<200) 
-
 
 #Export
 write_csv(output, "data//uncertainty_results.csv")
