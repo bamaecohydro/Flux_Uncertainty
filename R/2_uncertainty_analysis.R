@@ -169,7 +169,7 @@ output<-df %>%
   group_by(gage) %>% 
   summarise(
     Q_uncertainty = mean(abs(flow_diff_percent), na.rm=T),
-    N_load_diff_kg = mean(abs(flow_diff_percent), na.rm=T)) %>% 
+    N_load_diff_kg = mean(abs(N_load_diff_kg), na.rm=T)) %>% 
   ungroup() %>% 
   rename(site_no = gage) %>% 
   filter(Q_uncertainty<200) 
