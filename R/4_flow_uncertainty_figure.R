@@ -53,24 +53,29 @@ map_plot <- ggplot()+
           color = '#E57200', 
           alpha = 0.70, 
           size = gages$Q_uncertainty/20+1) +
-  theme_bw()
+  theme_bw()+
+  #Change font size of axes
+  theme(
+    axis.title = element_text(size = 14,color="black"), 
+    axis.text  = element_text(size = 12,color="black")
+  ) 
 
 #Distribution of relative error
 pdf_plot <- gages %>% 
   ggplot(aes(x = Q_uncertainty)) +
   geom_histogram(
     aes(y = ..density..), 
-    bg="grey70", 
+    bg="gray80", 
     binwidth = 10) +
   geom_density(
     adjust=2,
     color="#E57200", 
-    lwd=1.2)+
-  theme_bw() +
+    lwd=2)+
+  theme_bw()+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   #Change font size of axes
   theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
+    axis.title = element_text(size = 14,color="black"), 
+    axis.text  = element_text(size = 12,color="black")
   ) + 
   #Add labels
   xlab('Relative Error (%)')+
@@ -80,5 +85,25 @@ pdf_plot <- gages %>%
 
 #Export final plot
 #Create plot with patchwork
-map_plot + pdf_plot + plot_annotation(tag_levels = c("A"), tag_suffix = ")")
+map_plot/pdf_plot
+
+#map_plot + pdf_plot + plot_annotation(tag_levels = c("A"), tag_suffix = ")")
 ggsave("docs//flow_uncertainty.png", height = 4, width = 7.5, units = "in", dpi=300)
+
+
+
+
+###################
+
+#misc theme code
+theme_bw()+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  ylab(expression(Q~(L~s^{"-1"})))+
+  xlab("Date")+
+  facet_wrap(.~year)+
+  theme(legend.position = "none")+
+  scale_y_continuous(limits=c(0,150000),labels = scales::comma)+
+  theme(axis.title.x=element_text(size=14,color="black"))+
+  theme(axis.title.y=element_text(size=14,color="black"))+
+  theme(axis.text.y=element_text(size=12,color="black"))+
+  theme(axis.text.x=element_text(size=12,color="black"))+
+  theme(strip.text.x=element_text(size=14,color="black"))+

@@ -23,7 +23,7 @@ library(sf)
 #Load data
 gages   <- read_csv('data/gages.csv')
 sd_gage <- read_csv("data/sd_gage.csv")
-ts_gage <- read_csv("temp/ts_gage.csv")
+ts_gage <- read_csv("data/ts_gage.csv")
 
 #Define gage for Demo
 gage<-"07374000" 
@@ -39,7 +39,7 @@ mod  <- sd_gage %>% filter(type=='model')
 mod_fun <- approxfun(mod$stage_ft, mod$Q_cfs)
 
 #Estimate error between measured and modeled
-error < -meas %>% 
+error <- meas %>% 
   #Rename Q_cfs
   rename(Q_meas = Q_cfs) %>% 
   #Estimate modeled value
@@ -177,31 +177,38 @@ ggplot()+
           alpha = 0.70, 
           pch=19, 
           cex=4) +
-  theme_bw()
+  theme_bw()+
+  theme(
+    axis.title = element_text(size = 14,color="black"), 
+    axis.text  = element_text(size = 12,color="black")
+  )
 
 ggsave("docs/methods_gage_location.png", width=7, height = 5, units = "in", dpi=300)
 
 
 #5.2 Stage-discharge -----------------------------------------------------------
+#File name: Methods stage-q A
+#aspect ratio (if exporting alone) - 428x386
 rating_curve <- ggplot()+
-  geom_line(
-    aes(x=mod$stage_ft, y=mod$Q_cfs),
-    lty=2,
-    lwd=1.1, 
-    col ="#e6550d") +
   geom_point(
     aes(x=meas$stage_ft, y=meas$Q_cfs), 
     pch=19, 
     col="#2b8cbe",
-    alpha = 0.7) +
+    alpha = 0.4,
+    size=2.5) +
+  geom_line(
+    aes(x=mod$stage_ft, y=mod$Q_cfs),
+    lty=2,
+    lwd=1.7, 
+    col ="#e6550d") +
   #Log Axis
   scale_y_log10()+
   #Add predefined black/white theme
-  theme_bw() +
+  theme_bw()+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   #Change font size of axes
   theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
+    axis.title = element_text(size = 14,color="black"), 
+    axis.text  = element_text(size = 12,color="black")
   ) + 
   #Add labels
   xlab("Stage [ft]") + 
@@ -211,13 +218,15 @@ rating_curve <- ggplot()+
 ggsave("docs//methods_rating_curve.png", height = 3.33, width = 3.75, units = "in", dpi=300)
 
 #5.3 Residuals Plot ------------------------------------------------------------
+#File name: Methods stage-q B
+#aspect ratio (if exporting alone) - 428x386
 resdiual_plot <- error %>% 
   mutate(error = error*100) %>% 
   ggplot() +
     #Add zero line  
     geom_hline(
       yintercept = 0, 
-      lwd=1.1,
+      lwd=1.7,
       lty=2, 
       col="#e6550d") +
     #Add points
@@ -225,13 +234,14 @@ resdiual_plot <- error %>%
       aes(x=Q_mod, y=error), 
       pch=19, 
       col="#2b8cbe",
-      alpha = 0.7) +
+      alpha = 0.4,
+      size=2.5) +
     #Add predefined black/white theme
-    theme_bw() +
+    theme_bw()+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
     #Change font size of axes
     theme(
-      axis.title = element_text(size = 14), 
-      axis.text  = element_text(size = 10)
+      axis.title = element_text(size = 14,color="black"), 
+      axis.text  = element_text(size = 12,color="black")
     ) + 
     #Add labels
     xlab("Discharge [cfs]") + 
@@ -248,13 +258,13 @@ density_plot <- error %>%
   geom_density(
     aes(error),
     fill="#2b8cbe", 
-    alpha=0.7) +
+    alpha=0.6) +
   #Add predefined black/white theme
-  theme_bw() +
+  theme_bw()+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   #Change font size of axes
   theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
+    axis.title = element_text(size = 14,color="black"), 
+    axis.text  = element_text(size = 12,color="black")
   ) + 
   #Add labels
   xlab("Residual Error [%]") + 
@@ -265,6 +275,7 @@ ggsave("docs//methods_density_plot.png", height = 3.33, width = 3.75, units = "i
 
 
 #5.5 Simulated hydrographs------------------------------------------------------
+#Aspect Ratio: 696x386
 hydro_plot <- ggplot() + 
   #Add simulated flows
   geom_line(
@@ -277,15 +288,15 @@ hydro_plot <- ggplot() +
   geom_line(
     aes(x=ts_gage$day, y=ts_gage$Q_cfs), 
     col="#e6550d",
-    lwd=0.9) + 
+    lwd=1.2) + 
   #Scale y-axis
   scale_y_log10()+
   #Add predefined black/white theme
-  theme_bw() +
+  theme_bw()+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   #Change font size of axes
   theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
+    axis.title = element_text(size = 14,color="black"), 
+    axis.text  = element_text(size = 12,color="black")
   ) + 
   #Add labels
   xlab("Date") + 
@@ -308,13 +319,13 @@ total_plot <- ggplot() +
   geom_line(
     aes(x=ts_gage$day, y=ts_gage$N_tot), 
     col="#e6550d",
-    lwd=0.9) + 
+    lwd=1.4) + 
   #Add predefined black/white theme
-  theme_bw() +
+  theme_bw()+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   #Change font size of axes
   theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
+    axis.title = element_text(size = 14,color="black"), 
+    axis.text  = element_text(size = 12,color="black")
   ) + 
   #Add labels
   xlab("Date") + 
@@ -340,11 +351,11 @@ sum_plot <- sim %>%
     lty=2, 
     lwd=1.1)+
   #Add predefined black/white theme
-  theme_bw() +
+  theme_bw()+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   #Change font size of axes
   theme(
-    axis.title = element_text(size = 14), 
-    axis.text  = element_text(size = 10)
+    axis.title = element_text(size = 14,color="black"), 
+    axis.text  = element_text(size = 12,color="black")
   ) + 
   #Add labels
   xlab(expression("Total N Export [kg x 10"^6*"]")) +
