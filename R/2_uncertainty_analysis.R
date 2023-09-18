@@ -74,14 +74,14 @@ sim_fun<-function(n){
         month>=10, 
         water_year + 1, 
         water_year)) %>% 
-    select(-month)
+    dplyr::select(-month)
   
   #Remove water years with less than 300 days
   complete_years<-ts_gage %>% 
     group_by(water_year) %>% 
     summarise(days = n()) %>% 
     filter(days>300) %>% 
-    select(water_year) %>% 
+    dplyr::select(water_year) %>% 
     pull()
   ts_gage<-ts_gage %>% filter(water_year %in% complete_years) %>% drop_na()
   remove(complete_years)
@@ -90,7 +90,7 @@ sim_fun<-function(n){
   #Create df of resampled error distribution
   error_resample<-tibble(
     n = seq(1,1000),
-    error= rnorm(1000, mean = mean(error$error, na.rm=T), sd = sd(error$error, na.rm=T)))
+    error= sample(error$error, size=1000, replace=T))
   
   #Create function to apply error to hydrograph
   sim_fun <- function(sim_n){
@@ -98,7 +98,7 @@ sim_fun<-function(n){
     #Define error term
     error_sim<-error_resample %>% 
       filter(n==sim_n) %>% 
-      select(error) %>% pull()
+      dplyr::select(error) %>% pull()
      
     #Apply to hydorgraph
     sim<-ts_gage %>% 
@@ -118,7 +118,7 @@ sim_fun<-function(n){
   sim <- sim %>% 
     left_join( 
       ts_gage %>% 
-        select(day, Q_cfs) %>% 
+        dplyr::select(day, Q_cfs) %>% 
         rename(Q_meas = Q_cfs))
   
   #Estimate daily loads
