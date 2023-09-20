@@ -43,7 +43,7 @@ wa <- ggplot(data=df,aes(x=drain_area_va, y=Q_uncertainty))+
   geom_smooth(method="lm",se=FALSE,color="#e6550d",linetype="dashed", size=1)+
   theme_bw()+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
   ylab("Q Relative Error (%)")+
-  xlab("Drainage Area (ha)")+
+  xlab("Drainage Area (mi^2)")+
   theme(axis.title = element_text(size = 14,color="black"),axis.text  = element_text(size = 12,color="black")) 
 
 cor.test(log10(df$drain_area_va), log10(df$Q_uncertainty), method = c("pearson")) #run correlation for Q and drainage area
